@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   FileText, Download, Calendar, Filter, TrendingUp, AlertTriangle,
-  CheckCircle, Clock, MapPin, BarChart3, PieChart, RefreshCw, Eye
+  CheckCircle, Clock, MapPin, BarChart3, PieChart, RefreshCw, Eye, Trash2
 } from 'lucide-react';
 
 export default function Reporting() {
@@ -132,6 +132,34 @@ export default function Reporting() {
     } catch (err) {
       console.error('Failed to download report:', err);
       alert('Failed to download report');
+    }
+  };
+
+  const handleDeleteReport = async (reportId, reportName) => {
+    // Confirm before deleting
+    const confirmed = window.confirm(`Are you sure you want to delete "${reportName}"? This action cannot be undone.`);
+    
+    if (!confirmed) return;
+
+    try {
+      // Try to call backend API
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reports/${reportId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Remove from local state
+        setGeneratedReports(prev => prev.filter(report => report.id !== reportId));
+        alert('Report deleted successfully!');
+      } else {
+        throw new Error('Failed to delete from server');
+      }
+    } catch (err) {
+      console.error('Failed to delete report:', err);
+      
+      // Fallback: Delete from local state even if backend fails
+      setGeneratedReports(prev => prev.filter(report => report.id !== reportId));
+      alert('Report removed from list (Note: Backend not connected)');
     }
   };
 
@@ -378,6 +406,14 @@ export default function Reporting() {
                         >
                           <Download size={16} />
                           Download
+                        </button>
+                        <button
+                          onClick={() => handleDeleteReport(report.id, report.name)}
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 text-sm"
+                          title="Delete report"
+                        >
+                          <Trash2 size={16} />
+                          Delete
                         </button>
                       </div>
                     </div>

@@ -43,9 +43,9 @@ export default function Sidebar({ children }) {
               } `}
             >
               <div className="leading-4">
-                <h4 className="font-semibold">constGenius</h4>
+                <h4 className="font-semibold">admin</h4>
                 <span className="text-xs text-gray-600">
-                  constgenius@gmail.com
+                  adminGenius@gmail.com
                 </span>
               </div>
               <MoreVertical size={20} />

@@ -17,5 +17,9 @@ export const formatCameraData = (apiCamera) => {
     thumbnailUrl: apiCamera.thumbnailUrl,
     isActive: apiCamera.isActive,
     lastUpdate: apiCamera.lastUpdate,
+    rtsp_url: apiCamera.rtsp_url,
+    rtsp_username: apiCamera.rtsp_username,
+    rtsp_password: apiCamera.rtsp_password,
+    stream_type: apiCamera.stream_type || 'hls',
   };
 };

@@ -35,9 +35,11 @@ export default function Analytics() {
     loadAllData();
   }, []);
 
-  // Reload chart when timeframe changes
+  // Reload chart, peak hours, and locations when timeframe changes
   useEffect(() => {
     loadChartData();
+    loadPeakHours();      // ← Add this
+    loadLocationData();   // ← Add this
   }, [activeTimeframe]);
 
   const loadAllData = async () => {
@@ -60,7 +62,7 @@ export default function Analytics() {
 
   const loadPeakHours = async () => {
     try {
-      const hours = await fetchPeakHours();
+      const hours = await fetchPeakHours(activeTimeframe);  // ← Pass timeframe
       setPeakHours(hours);
     } catch (err) {
       console.error('Failed to load peak hours:', err);
@@ -82,7 +84,7 @@ export default function Analytics() {
 
   const loadLocationData = async () => {
     try {
-      const locations = await fetchLocationAnalytics();
+      const locations = await fetchLocationAnalytics(activeTimeframe);  // ← Pass timeframe
       setLocationData(locations);
     } catch (err) {
       console.error('Failed to load location data:', err);

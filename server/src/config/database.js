@@ -11,7 +11,7 @@ const pool = new Pool({
   },
   max: 10, // Maximum number of clients
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 5000, // Increased from 2000 to 5000ms for Neon stability
 });
 
 // Test connection

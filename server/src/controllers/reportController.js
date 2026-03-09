@@ -52,6 +52,28 @@ class ReportController {
     }
   }
 
+  async deleteReport(req, res, next) {
+    try {
+      const { id } = req.params;
+      
+      const deleted = await Report.delete(id);
+      
+      if (!deleted) {
+        return res.status(404).json({
+          success: false,
+          message: 'Report not found',
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Report deleted successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async downloadReport(req, res, next) {
     try {
       // For now, just send a message

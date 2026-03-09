@@ -50,69 +50,52 @@ export default function CameraDetails({ cameraId, onBack }) {
   };
 
   const loadCameraStats = async () => {
-    // TODO: Replace with actual API call
-    // For now using mock data
-    setCameraStats({
-      totalIncidents: 12,
-      resolvedIncidents: 8,
-      pendingIncidents: 4,
-      avgConfidence: 85.5,
-      lastIncident: '2 hours ago',
-    });
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/cameras/${cameraId}/stats`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setCameraStats(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to load camera stats:', err);
+      // Fallback to zero stats
+      setCameraStats({
+        totalIncidents: 0,
+        resolvedIncidents: 0,
+        pendingIncidents: 0,
+        avgConfidence: 0,
+        lastIncident: null,
+      });
+    }
   };
 
   const loadRecentIncidents = async () => {
-    // TODO: Replace with actual API call
-    // Mock data
-    setRecentIncidents([
-      {
-        id: 1,
-        type: 'Physical',
-        severity: 'high',
-        confidence: 87.5,
-        detectedAt: '2024-02-11 10:30',
-        status: 'pending',
-        description: 'Physical altercation detected',
-      },
-      {
-        id: 2,
-        type: 'Verbal',
-        severity: 'medium',
-        confidence: 75.2,
-        detectedAt: '2024-02-11 09:15',
-        status: 'resolved',
-        description: 'Verbal harassment observed',
-      },
-      {
-        id: 3,
-        type: 'Physical',
-        severity: 'critical',
-        confidence: 92.1,
-        detectedAt: '2024-02-10 14:45',
-        status: 'resolved',
-        description: 'Multiple students involved',
-      },
-    ]);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/cameras/${cameraId}/incidents?limit=10`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setRecentIncidents(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to load recent incidents:', err);
+      setRecentIncidents([]);
+    }
   };
 
   const loadRecentAlerts = async () => {
-    // TODO: Replace with actual API call
-    setRecentAlerts([
-      {
-        id: 1,
-        type: 'critical',
-        message: 'Physical fight detected - immediate response',
-        time: '2 hours ago',
-        dismissed: false,
-      },
-      {
-        id: 2,
-        type: 'warning',
-        message: 'Suspicious group gathering',
-        time: '5 hours ago',
-        dismissed: false,
-      },
-    ]);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/cameras/${cameraId}/alerts?limit=5`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setRecentAlerts(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to load recent alerts:', err);
+      setRecentAlerts([]);
+    }
   };
 
   const getSeverityColor = (severity) => {

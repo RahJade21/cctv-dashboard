@@ -127,20 +127,22 @@ export const fetchDetectionStats = async () => {
   return response.data;
 };
 
-/**
- * Get peak hours data
- */
-export const fetchPeakHours = async () => {
-  const response = await fetchAPI('/api/analytics/peak-hours');
-  return response.data;
+// Update these functions in frontend/src/services/api.js
+
+// Update fetchPeakHours to accept timeframe
+export const fetchPeakHours = async (timeframe = 'weekly') => {
+  const response = await fetch(`${API_BASE_URL}/api/analytics/peak-hours?timeframe=${timeframe}`);
+  const data = await response.json();
+  if (!data.success) throw new Error('Failed to fetch peak hours');
+  return data.data;
 };
 
-/**
- * Get location-based analytics
- */
-export const fetchLocationAnalytics = async () => {
-  const response = await fetchAPI('/api/analytics/locations');
-  return response.data;
+// Update fetchLocationAnalytics to accept timeframe
+export const fetchLocationAnalytics = async (timeframe = 'weekly') => {
+  const response = await fetch(`${API_BASE_URL}/api/analytics/locations?timeframe=${timeframe}`);
+  const data = await response.json();
+  if (!data.success) throw new Error('Failed to fetch location analytics');
+  return data.data;
 };
 
 /**

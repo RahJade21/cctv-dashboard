@@ -40,21 +40,22 @@ class Analytics {
   }
 
   /**
-   * Get monthly analytics (grouped by week)
+   * Get monthly analytics (grouped by week) - FIXED
    */
   static async getMonthly() {
+    // Count actual incidents from incidents table, not analytics aggregates
     const result = await db.query(
       `SELECT 
-        'Week ' || EXTRACT(WEEK FROM date)::text as week,
-        MIN(date)::text || ' - ' || MAX(date)::text as dateRange,
-        SUM(total_incidents) as incidents,
-        SUM(resolved_incidents) as resolved,
-        SUM(pending_incidents) as pending,
-        SUM(false_positives) as falsePositives
-       FROM analytics
-       WHERE date >= CURRENT_DATE - INTERVAL '30 days'
-       GROUP BY EXTRACT(WEEK FROM date)
-       ORDER BY EXTRACT(WEEK FROM date) ASC`
+        'Week ' || EXTRACT(WEEK FROM DATE(detected_at))::text as week,
+        MIN(DATE(detected_at))::text || ' - ' || MAX(DATE(detected_at))::text as dateRange,
+        COUNT(DISTINCT i.id)::integer as incidents,
+        COUNT(DISTINCT CASE WHEN i.status = 'resolved' THEN i.id END)::integer as resolved,
+        COUNT(DISTINCT CASE WHEN i.status = 'pending' THEN i.id END)::integer as pending,
+        COUNT(DISTINCT CASE WHEN i.status = 'false_positive' THEN i.id END)::integer as falsePositives
+       FROM incidents i
+       WHERE DATE(detected_at) >= CURRENT_DATE - INTERVAL '30 days'
+       GROUP BY EXTRACT(WEEK FROM DATE(detected_at))
+       ORDER BY EXTRACT(WEEK FROM DATE(detected_at)) ASC`
     );
     return result.rows;
   }
@@ -114,9 +115,23 @@ class Analytics {
   }
 
   /**
-   * Get peak hours data
+   * Get peak hours data - Now accepts timeframe parameter
    */
-  static async getPeakHours() {
+  static async getPeakHours(timeframe = 'weekly') {
+    // Determine date range based on timeframe
+    let dateCondition = '';
+    switch(timeframe) {
+      case 'today':
+        dateCondition = `a.date = CURRENT_DATE`;
+        break;
+      case 'monthly':
+        dateCondition = `a.date >= CURRENT_DATE - INTERVAL '30 days'`;
+        break;
+      case 'weekly':
+      default:
+        dateCondition = `a.date >= CURRENT_DATE - INTERVAL '7 days'`;
+    }
+
     const result = await db.query(
       `SELECT 
         CASE 
@@ -127,7 +142,7 @@ class Analytics {
         END as period,
         SUM(a.total_incidents)::integer as incidents
        FROM analytics a
-       WHERE a.date >= CURRENT_DATE - INTERVAL '7 days'
+       WHERE ${dateCondition}
        GROUP BY 
         CASE 
           WHEN a.hour BETWEEN 8 AND 11 THEN 'Morning (8AM-12PM)'
@@ -147,23 +162,89 @@ class Analytics {
   }
 
   /**
-   * Get location-based analytics
+   * Get location-based analytics with trends - Now accepts timeframe parameter
    */
-  static async getLocationAnalytics() {
-    const result = await db.query(
+  static async getLocationAnalytics(timeframe = 'weekly') {
+    // Determine date range based on timeframe
+    let currentInterval = '7 days';
+    let previousInterval = '14 days';
+    let previousStart = '7 days';
+    
+    switch(timeframe) {
+      case 'today':
+        currentInterval = '1 day';
+        previousInterval = '2 days';
+        previousStart = '1 day';
+        break;
+      case 'monthly':
+        currentInterval = '30 days';
+        previousInterval = '60 days';
+        previousStart = '30 days';
+        break;
+      case 'weekly':
+      default:
+        currentInterval = '7 days';
+        previousInterval = '14 days';
+        previousStart = '7 days';
+    }
+
+    // Get current period data
+    const currentPeriod = await db.query(
       `SELECT 
         c.location,
         COUNT(i.id) as incidents,
         ROUND((COUNT(i.id)::DECIMAL / 
-          NULLIF((SELECT COUNT(*) FROM incidents), 0) * 100), 0) as percentage
-       FROM cameras c
-       LEFT JOIN incidents i ON c.id = i.camera_id
-       GROUP BY c.location
-       HAVING COUNT(i.id) > 0
-       ORDER BY incidents DESC
-       LIMIT 5`
+          NULLIF((SELECT COUNT(*) FROM incidents WHERE DATE(detected_at) >= CURRENT_DATE - INTERVAL '${currentInterval}'), 0) * 100), 0) as percentage
+      FROM cameras c
+      LEFT JOIN incidents i ON c.id = i.camera_id 
+        AND DATE(i.detected_at) >= CURRENT_DATE - INTERVAL '${currentInterval}'
+      GROUP BY c.location
+      HAVING COUNT(i.id) > 0
+      ORDER BY incidents DESC
+      LIMIT 5`
     );
-    return result.rows;
+
+    // Get previous period data for comparison
+    const previousPeriod = await db.query(
+      `SELECT 
+        c.location,
+        COUNT(i.id) as incidents
+      FROM cameras c
+      LEFT JOIN incidents i ON c.id = i.camera_id 
+        AND DATE(i.detected_at) >= CURRENT_DATE - INTERVAL '${previousInterval}'
+        AND DATE(i.detected_at) < CURRENT_DATE - INTERVAL '${previousStart}'
+      GROUP BY c.location`
+    );
+
+    // Build a map of previous incidents by location
+    const previousMap = {};
+    previousPeriod.rows.forEach(row => {
+      previousMap[row.location] = parseInt(row.incidents) || 0;
+    });
+
+    // Calculate trends
+    const result = currentPeriod.rows.map(row => {
+      const current = parseInt(row.incidents) || 0;
+      const previous = previousMap[row.location] || 0;
+      
+      let trend = 'stable';
+      if (previous > 0) {
+        const change = ((current - previous) / previous) * 100;
+        if (change > 10) trend = 'up';
+        else if (change < -10) trend = 'down';
+      } else if (current > 0) {
+        trend = 'up';
+      }
+
+      return {
+        location: row.location,
+        incidents: current,
+        percentage: parseInt(row.percentage) || 0,
+        trend
+      };
+    });
+
+    return result;
   }
 
   /**

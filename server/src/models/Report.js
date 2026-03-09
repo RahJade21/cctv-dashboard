@@ -8,6 +8,14 @@ class Report {
     return result.rows;
   }
 
+  static async findById(id) {
+    const result = await db.query(
+      `SELECT * FROM reports WHERE id = $1`,
+      [id]
+    );
+    return result.rows[0];
+  }
+
   static async create(reportData) {
     const { name, type, dateRange, generatedBy, fileSize } = reportData;
     
@@ -19,6 +27,15 @@ class Report {
     );
     
     return result.rows[0];
+  }
+
+  static async delete(id) {
+    const result = await db.query(
+      `DELETE FROM reports WHERE id = $1 RETURNING id`,
+      [parseInt(id, 10)]
+    );
+    
+    return result.rows.length > 0;
   }
 }
 

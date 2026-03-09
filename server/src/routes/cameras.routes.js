@@ -17,4 +17,13 @@ router.patch('/:id/status', cameraController.updateCameraStatus);
 // POST /api/cameras/preferences - Update camera preferences
 router.post('/preferences', cameraController.updateCameraPreferences);
 
+// GET /api/cameras/:id/stats - Get camera statistics
+router.get('/:id/stats', cameraController.getCameraStats);
+
+// GET /api/cameras/:id/incidents - Get camera incidents
+router.get('/:id/incidents', cameraController.getCameraIncidents);
+
+// GET /api/cameras/:id/alerts - Get camera alerts
+router.get('/:id/alerts', cameraController.getCameraAlerts);
+
 module.exports = router;

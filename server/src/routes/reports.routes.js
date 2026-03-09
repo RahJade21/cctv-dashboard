@@ -8,6 +8,9 @@ router.post('/generate', reportController.generateReport);
 // GET /api/reports - Get all reports
 router.get('/', reportController.getAllReports);
 
+// DELETE /api/reports/:id - Delete report
+router.delete('/:id', reportController.deleteReport);
+
 // GET /api/reports/:id/download - Download report PDF
 router.get('/:id/download', reportController.downloadReport);
 

@@ -160,32 +160,52 @@ export default function Dashboard({ onNavigateToCameraDetails }) {
 
   const loadBullyingStats = async () => {
     try {
-      // For now, calculate from alerts
-      const totalIncidents = alerts.length;
-      
-      // Calculate comparison based on date range
-      let comparisonPeriod = 'since yesterday';
-      if (selectedDateRange === 'week') {
-        comparisonPeriod = 'since last week';
-      } else if (selectedDateRange === 'month') {
-        comparisonPeriod = 'since last month';
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (selectedLocation !== 'all') {
+        params.append('location', selectedLocation);
       }
+      params.append('dateRange', selectedDateRange);
 
-      // Mock comparison - in real implementation, fetch previous period data
-      const percentageChange = Math.floor(Math.random() * 30) - 10;
-      const trend = percentageChange > 0 ? 'up' : percentageChange < 0 ? 'down' : 'stable';
+      // Fetch from bullying-stats endpoint
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/analytics/bullying-stats?${params}`);
+      const data = await response.json();
 
+      if (data.success) {
+        const stats = data.data;
+        
+        // Calculate comparison period text
+        let comparisonPeriod = 'since yesterday';
+        if (selectedDateRange === 'week') {
+          comparisonPeriod = 'since last week';
+        } else if (selectedDateRange === 'month') {
+          comparisonPeriod = 'since last month';
+        }
+
+        const locationText = selectedLocation === 'all' ? 'all areas' : selectedLocation;
+
+        setBullyingStats({
+          count: stats.totalIncidents || 0,
+          location: locationText,
+          percentageChange: stats.percentageChange || 0,
+          trend: stats.trend || 'stable',
+          comparisonPeriod,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load bullying stats:', err);
+      
+      // Fallback to alert count
+      const totalIncidents = alerts.length;
       const locationText = selectedLocation === 'all' ? 'all areas' : selectedLocation;
-
+      
       setBullyingStats({
         count: totalIncidents,
         location: locationText,
-        percentageChange: Math.abs(percentageChange),
-        trend,
-        comparisonPeriod,
+        percentageChange: 0,
+        trend: 'stable',
+        comparisonPeriod: 'since yesterday',
       });
-    } catch (err) {
-      console.error('Failed to load bullying stats:', err);
     }
   };
 
@@ -526,9 +546,7 @@ export default function Dashboard({ onNavigateToCameraDetails }) {
                 
                 <div className='aspect-video bg-gray-900'>
                   <CCTVVideoPlayer 
-                    videoUrl={camera.videoUrl}
-                    cameraName={camera.location}
-                    status={camera.status}
+                    camera={camera}
                   />
                 </div>
                 
@@ -539,7 +557,7 @@ export default function Dashboard({ onNavigateToCameraDetails }) {
                   </div>
                   <button 
                     onClick={() => handleCameraDetailsClick(camera.id)}
-                    className='flex items-center text-indigo-600 hover:text-indigo-700 text-xs font-medium cursor-pointer'
+                    className='flex items-center text-indigo-600 hover:text-indigo-700 text-xs font-medium'
                   >
                     <span>Details</span>
                     <ChevronRight size={14} />
